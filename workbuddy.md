@@ -54,3 +54,54 @@
 WorkBuddy 支持导出对话上下文。建议在本文件后附上导出的原始对话记录，以进一步佐证真实使用过程。
 
 > ⚠️ 导出时务必确认其中**不含真实 MCP Token、手机号、地址**等敏感信息。
+
+## 实现细节与联调校准（从 SKILL.md 迁出的开发记录）
+
+> 以下为开发 / 验证过程记录，**不属于技能运行规范**（运行规范见 `SKILL.md`），仅用于佐证实现与真实联调。
+
+### 极速点单端到端编排（`workflow.run_fast_order`）
+
+`workflow.run_fast_order(client, context, items, now, confirmed, stores=...)` 把「选店 → 算价 → 下单」串起来，所有确定性决策（路由 / 方案 / 金额映射 / 字段提取）写死在代码里，网络调用全部委托给注入的 client。
+
+- **测试 / 演示**：用 `tests/test_workflow.py` 的 `FakeClient` 回放真实探针 + 模拟计价 / 下单，不依赖真实 Token 即可确定性跑通；专门验证 beCode 配对、takeWayCode 来源、reservationDate、orderId 不生成等风险点。
+- **接真实 MCP**：`examples/online_demo.py` 检测到 `MCD_MCP_TOKEN` 即用真实 `MCDClient`，否则回退 `FakeClient`（调用契约一致）。
+- **两阶段**：`confirmed=False` 只出预览（不写）；`confirmed=True` 才过 `guard` 闸门下单。
+- **只读安全约定**：live 默认只跑只读预览，绝不自动下单；真下单需显式 `--really-order`，且脚本只对「到店自取」单一场景下单。
+
+### 真·联调校准结论（已用真实 Token 验证）
+
+`examples/smoke_live.py` 用真实 Token 跑通只读预览，实测修正了以下字段 / 约束：
+
+| 项 | 实测结论 | 处理 |
+| --- | --- | --- |
+| 商品字段 | `productCode` + `quantity`（不是 code / qty）——传错会 600010 或静默空计价 | `router.build_args` 在边界统一转换 |
+| 金额单位 | **分**（`originalPrice:1950` = ¥19.5） | `workflow._extract_price` 统一 `/100` |
+| 优惠字段 | 顶层 `discount`（分）；无优惠为 0 | 渲染时 `discount<=0` 不显示「优惠」行 |
+| takeWayCode | `takeWayList[].code`（如 `eat-in`） | `workflow._extract_take_way_code`，外送不传 |
+| `calculate-price` 入参 | **不传 reservationDate**；beType=5/6 必传 beCode（600048） | 计价只传 items / storeCode / beType / orderType（+beCode） |
+| `query-nearby-stores` | searchType=2 时 city 与 keyword 都必填（600058）；同参两次可能返回不同门店 | 缺 keyword 回退城市名；`run_fast_order(..., stores=...)` 支持注入，保证「选品门店 == 计价门店」 |
+| DT 门店 | beType=5 的 `query-nearby-stores` 会返回 beCode | `_extract_be_code` 取自响应，缺失即显式报错 |
+
+真联调现状：到店自取（只读预览）+ 麦乐送、团餐（均已真实下单，验证全链路）+ 得来速（真实只读预览验证 beCode 配对，beCode=`333054841`）已用真实 Token 跑通。
+
+### 企业团餐（group）链路
+
+`workflow.run_fast_order` 支持第四种取餐方式 `group`（beType=6 / orderType=2）：
+
+```
+delivery-query-stores(addressId, beType=6) → storeCode + beCode
+  ↓
+query-meal-assistance(storeCode, beType=6, orderType=2, beCode) → gmServiceCode   （须在 calculate-price 之前）
+  ↓
+calculate-price(..., beCode, gmServiceCode) → 金额
+  ↓
+create-order(..., beCode, gmServiceCode, addressId)
+```
+
+- `gmServiceCode` **只能**来自 `query-meal-assistance`（优先 `selected=True` 项，否则第一个 `enable=True`），缺失即失败显性化。
+- 团餐与麦乐送同为 orderType=2，**不传** takeWayCode / reservationDate。
+- 团餐有 ¥300 起送门槛；真实下单曾返回 `[499] ¥300元起送`。
+
+### 金额上限（guard）按取餐方式动态化
+
+`guard.limit_for_method(method)`：企业团餐 ¥5000（含起送门槛，避免被默认 ¥200 误拦），其余 ¥200；`run_fast_order(amount_limit=None)` 时自动按方式兜底，显式传入优先。
