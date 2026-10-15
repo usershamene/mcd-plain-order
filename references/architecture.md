@@ -180,10 +180,6 @@ contest-project/                      （仓库根 = Skill 根）
 ├── CONTEST_DECLARATION.md            参赛声明（不可改）
 ├── mcp-config.example.json           脱敏配置
 ├── workbuddy.md                      WorkBuddy 开发上下文
-├── docs/
-│   ├── product-spec.md               产品定义
-│   ├── design-standards.md           适老设计标准（可验收）
-│   └── architecture.md               本文件
 ├── scripts/
 │   ├── mcd_client.py                 ✅ MCP 客户端
 │   ├── router.py                     场景路由
@@ -192,6 +188,10 @@ contest-project/                      （仓库根 = Skill 根）
 │   ├── planner.py                    ⏳ 候选与比价
 │   └── render.py                     ⏳ 输出渲染
 ├── references/
+│   ├── product-spec.md               产品定义
+│   ├── design-standards.md           适老设计标准（可验收）
+│   ├── architecture.md               本文件
+│   ├── output-format.md              输出消息格式规范
 │   ├── mcd-mcp-tools-reference.md    ✅ 35 工具调研
 │   ├── be_type_matrix.md             取餐方式参数矩阵
 │   └── error_codes.md                错误码与处置

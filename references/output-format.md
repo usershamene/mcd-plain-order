@@ -2,7 +2,7 @@
 
 > 适用范围：麦麦明白点（mcd-plain-order）所有面向用户的消息，尤其是「极速点单」主链路的最终回执。
 > 实现：`scripts/render.py`（确定性模板，模型只填结构化数据，不负责格式）。
-> 配套：`docs/design-standards.md`（金额三行、大白话等适老/省心标准）。
+> 配套：`references/design-standards.md`（金额三行、大白话等适老/省心标准）。
 
 ---
 

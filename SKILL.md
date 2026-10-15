@@ -1,8 +1,8 @@
-\---  
+---  
 name: mcd-plain-order  
-description: 麦麦明白点 —— 以「极速点单」为尖入口的对话式麦当劳助手。用户说一句话，自动判断取餐方式、算出最划算组合、预约到店即取零等待。覆盖选餐、算价、下单到售后的完整流程，并基于用户偏好做个性化（避开不喜欢的、主动告知喜欢的新品/券）。所有输出遵循统一消息格式（docs/output-format.md）：金额三行明示、大白话、无诱导、写操作 10 分钟内可撤销。  
+description: 麦麦明白点（mcd-plain-order）—— 以「极速点单」为尖入口的对话式麦当劳点餐助手：一句话自动判断取餐方式（到店自取 / 得来速 / 麦乐送 / 企业团餐），真实计价对比、预约到店即取，覆盖选餐、算价、下单到售后全流程，并按用户偏好个性化（避开不喜欢的、主动告知喜欢的新品/券）。只要用户提到点麦当劳、想吃某样单品、问附近门店或菜品/套餐内容、问有什么券或怎么点最省、要对比几套方案、查或取消订单、或替家人点餐，都应使用本技能——即使没说「点餐」二字。所有输出金额三行明示、说人话、无诱导，写操作 10 分钟内可撤销。  
 agent_created: true  
-\---
+---
 
 # 麦麦明白点（mcd-plain-order）
 
@@ -15,15 +15,6 @@ agent_created: true
 面向全体消费者（早餐与通勤人群为主），并把**工信部适老化设计规范**作为硬标准落地，因此它也照顾到不熟悉多步操作的用户。
 
 **与官方 App 的差异**：官方 App 已经能点餐。本 Skill 的价值在四件事——**编排**（自动判断取餐方式）、**对比**（多方案真实计价对比，而不是只给一个）、**明确**（金额永远三行，不藏着）、**可逆**（写操作明示 10 分钟内可撤销）。
-
-## 何时使用
-
-- 用户要点麦当劳：「帮我点个早餐」「我想吃麦辣鸡腿堡」「来份和昨天一样的」
-- 用户问门店或菜品：「附近哪家麦当劳」「这家店有什么」「这个套餐里有什么」
-- 用户问优惠：「我有什么券能用」「怎么点最省」「我的积分能换什么」
-- 用户要对比：「同样 60 块，给我几个方案」
-- 用户管订单：「订单到哪了」「帮我取消」
-- 用户替家人点：「给我妈点份早餐送过去」
 
 ## 前置条件
 
@@ -119,7 +110,7 @@ success == false               →  业务失败，原文展示 message，禁止
 - **无默认勾选**：餐具、加购、备注一律默认关闭
 - 下单回执必须含撤销路径与时限
 
-完整清单：`docs/design-standards.md`
+完整清单：`references/design-standards.md`
 
 ## 个性化（用户画像）
 
@@ -154,7 +145,7 @@ python scripts/mcd_client.py call query-my-account
 python examples/fast_order_demo.py            # 极速点单形态演示（真实门店数据）
 python examples/online_demo.py                # Token 就绪演示：设了 MCD_MCP_TOKEN 走真实只读预览，否则 FakeClient 离线回放
 python examples/smoke_live.py                 # 真·只读联调（需 MCD_MCP_TOKEN）：抓真实响应校准字段
-python -m unittest discover -s tests           # 125 个单测，验证全部确定性逻辑
+python -m unittest discover -s tests           # 126 个单测，验证全部确定性逻辑
 ```
 
 ### 线上联调（无 Token 也能跑，且防误操作）
@@ -208,13 +199,15 @@ create-order(..., beCode, gmServiceCode, addressId)
 
 | 文件                                      | 内容                      |
 | --------------------------------------- | ----------------------- |
-| `docs/product-spec.md`                  | 产品定义、功能矩阵、非目标           |
-| `docs/design-standards.md`              | 适老设计标准（可验收清单）           |
-| `docs/architecture.md`                  | 六层架构、模块契约、错误策略          |
-| `docs/output-format.md`                 | 输出消息格式规范（分区/区分/最少字最多信息） |
+| `references/product-spec.md`                  | 产品定义、功能矩阵、非目标           |
+| `references/design-standards.md`              | 适老设计标准（可验收清单）           |
+| `references/architecture.md`                  | 六层架构、模块契约、错误策略          |
+| `references/output-format.md`                 | 输出消息格式规范（分区/区分/最少字最多信息） |
 | `references/be_type_matrix.md`          | 四种取餐方式的完整参数矩阵           |
 | `references/error_codes.md`             | 错误码、易误判场景、参数格式          |
 | `references/mcd-mcp-tools-reference.md` | 35 个 MCP 工具完整调研         |
+
+何时读：构造取餐 / 计价 / 下单参数前查 `be_type_matrix`；遇到 `6000x` 报错查 `error_codes`；需要某工具的字段或行为查 `mcd-mcp-tools-reference`；生成任何面向用户的消息前查 `output-format` 与 `design-standards`；需要产品定位 / 边界或模块契约时查 `product-spec` / `architecture`。
 
 ## 边界与限制
 

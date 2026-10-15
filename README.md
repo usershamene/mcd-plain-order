@@ -52,7 +52,7 @@
 | 会员资产 | 积分商城浏览与兑换、商城订单、抽奖与奖品 |
 | 特殊场景 | 企业团餐（助餐服务、满减规则）、派对/体验营预约 |
 
-完整功能矩阵与优先级见 [`docs/product-spec.md`](docs/product-spec.md)。
+完整功能矩阵与优先级见 [`references/product-spec.md`](references/product-spec.md)。
 
 ## 目录结构
 
@@ -64,11 +64,11 @@
 │   ├── router.py                   取餐方式路由与参数构造
 │   ├── coupons.py                  券可用性判定（日内窗口）
 │   └── guard.py                    写操作闸门与回执话术
-├── docs/
+├── references/
 │   ├── product-spec.md             产品定义 / 功能矩阵 / 非目标
 │   ├── design-standards.md         适老设计标准（可验收清单）
-│   └── architecture.md             六层架构与模块契约
-├── references/
+│   ├── architecture.md             六层架构与模块契约
+│   ├── output-format.md            输出消息格式规范
 │   ├── mcd-mcp-tools-reference.md  35 个 MCP 工具完整调研
 │   ├── be_type_matrix.md           四种取餐方式参数矩阵
 │   └── error_codes.md              错误码与易误判场景
@@ -142,13 +142,13 @@ cp .env.example .env
 - 无诱导付款、无默认勾选、无营销推送
 - Token 与个人数据不入库
 
-完整清单见 [`docs/design-standards.md`](docs/design-standards.md)。
+完整清单见 [`references/design-standards.md`](references/design-standards.md)。
 
 > 诚实说明：本项目**不声称**通过工信部适老化评测，规范在此作为**设计参照标准**使用。
 
 ## 边界
 
-不做库存/排班/销量（MCP 无此数据）、不做排队预测、不做品牌对比、不做占座类场景。详见 [`docs/product-spec.md`](docs/product-spec.md) 的「非目标」一节。
+不做库存/排班/销量（MCP 无此数据）、不做排队预测、不做品牌对比、不做占座类场景。详见 [`references/product-spec.md`](references/product-spec.md) 的「非目标」一节。
 
 ## 许可证
 
