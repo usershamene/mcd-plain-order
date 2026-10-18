@@ -156,6 +156,13 @@ class TestPickupFlow(unittest.TestCase):
         workflow.run_fast_order(c, {}, ITEMS, now=NOW, confirmed=False, stores=load_stores_raw())
         self.assertEqual(c.called("query-nearby-stores"), [])
 
+    def test_city_forwarded_to_store_query(self):
+        """city 必须透传到 query-nearby-stores，否则真实接口报 600058（城市/关键词为空）。"""
+        c = FakeClient()
+        workflow.run_fast_order(c, {}, ITEMS, now=NOW, confirmed=False, city="示例市")
+        args = [a for n, a in c.calls if n == "query-nearby-stores"][0]
+        self.assertEqual(args.get("city"), "示例市")
+
     def test_price_call_has_no_reservation_date(self):
         """calculate-price 不传 reservationDate（那是 create-order 的参数，传了会让部分商品 60006）。"""
         c = FakeClient()

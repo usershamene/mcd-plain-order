@@ -61,7 +61,11 @@ def main() -> int:
         "storeCode", "storeName", "distance", "businessStatus",
         "beCode", "reservation", "reservationTimeOptions",
     )), ensure_ascii=False))
-    store_code = s0.get("storeCode")
+    # workflow 内部会用 select_nearest_store（仅营业中且支持预约，按距离升序）重新选店；
+    # 菜单必须从「它实际会选中的那家店」取，否则会「选品门店 ≠ 计价门店」→ 60006。
+    menu_store = fast_order.select_nearest_store(stores) or s0
+    store_code = menu_store.get("storeCode")
+    print("  选品门店:", store_code, menu_store.get("storeName"))
 
     # 2) 菜单（取真实商品 code，FakeClient 的 M001 等是假的）
     try:
@@ -119,7 +123,9 @@ def main() -> int:
 
     # 5) 端到端只读编排（pickup, confirmed=False）—— 验证 router 归一化 + workflow 提取 + render 整体
     try:
-        out = workflow.run_fast_order(client, {}, items, keyword=keyword, confirmed=False)
+        out = workflow.run_fast_order(
+            client, {}, items, city=city, keyword=keyword, confirmed=False, stores=stores
+        )
         print("=== workflow.run_fast_order(pickup, 只读预览) ===")
         print(render.render_message(out))
     except Exception as exc:
