@@ -19,6 +19,7 @@ sys.path.insert(0, str(ROOT / "scripts"))
 import workflow  # noqa: E402
 import render  # noqa: E402
 import fast_order  # noqa: E402
+import location  # noqa: E402
 from mcd_client import MCDClient  # noqa: E402
 
 
@@ -36,8 +37,11 @@ def main() -> int:
         print("MCD_MCP_TOKEN 未设置，退出")
         return 2
     client = MCDClient()  # 未传 token 时自动从环境变量 MCD_MCP_TOKEN 读取
-    city = "宁波"
-    keyword = "长兴路"  # 与原始探针一致；searchType=2 时 city 与 keyword 都必填
+    city = os.environ.get("MCD_CITY") or location.detect_city()
+    if not city:
+        print("未能自动定位城市，且未设置 MCD_CITY，退出")
+        return 2
+    keyword = os.environ.get("MCD_KEYWORD") or city  # searchType=2 时 city 与 keyword 都必填
 
     # 1) 附近门店（到店 beType=1）
     try:

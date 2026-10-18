@@ -22,6 +22,11 @@ agent_created: true
 2. 读取会员数据（积分 / 券 / 订单）要求该 Token 已绑定麦当劳会员账号
 3. Python 3.10+，仅标准库，无需第三方包
 
+## 时间与定位（自动，不询问）
+
+- **时间**：用 `now-time-info`（或 `scripts/clock.now(client)`）自动获取当前时间；**绝不问用户"现在几点"**。
+- **城市**：用 `scripts/location.detect_city()` 按 IP 自动定位；**不主动询问**。定位成功后用 `location.confirm_prompt(city)` 轻度确认（如"我按你的网络位置定位到「X」，不对的话告诉我"）；定位失败才请用户说城市。
+
 ## 输入（规范化）
 
 **触发**：用户表达「想点 / 想吃 / 问门店菜品 / 问券问省钱 / 要对比 / 查或取消订单 / 替他人点餐」。
@@ -178,6 +183,8 @@ success == false               →  业务失败，原文展示 message，禁止
 | 脚本 | 用途 | 何时用 |
 | --- | --- | --- |
 | `scripts/mcd_client.py` | MCP 客户端（鉴权 / 会话 / 业务校验） | 所有工具调用 |
+| `scripts/clock.py` | 当前时间（MCP `now-time-info` 优先，本机时钟兜底） | 需要"现在几点"时（自动，不询问） |
+| `scripts/location.py` | 按 IP 定位城市 + 轻度确认话术 | 需要城市时（自动，不询问） |
 | `scripts/router.py` | 取餐方式路由与参数构造 | 每次构造工具参数前 |
 | `scripts/coupons.py` | 券可用性判定与紧迫度排序 | 涉及券的任何场景 |
 | `scripts/guard.py` | 写操作闸门与回执话术 | 任何写操作前 |

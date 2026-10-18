@@ -38,6 +38,7 @@ sys.path.insert(0, str(ROOT / "scripts"))
 import fast_order  # noqa: E402
 import render  # noqa: E402
 import workflow  # noqa: E402
+import location  # noqa: E402
 
 NOW = datetime(2026, 10, 11, 9, 0)
 ITEMS = [
@@ -171,11 +172,16 @@ def main() -> None:
     live = bool(token)
 
     if live:
-        print("检测到 MCD_MCP_TOKEN：将以真实麦当劳 MCP 只读预览模式运行（不自动下单）。")
+        city = os.environ.get("MCD_CITY") or location.detect_city()
+        if not city:
+            print("未能自动定位城市，且未设置 MCD_CITY；跳过 live 演示。")
+            return
+        keyword = os.environ.get("MCD_KEYWORD") or city
+        print(f"检测到 MCD_MCP_TOKEN：以真实麦当劳 MCP 只读预览模式运行（城市：{city}，不自动下单）。")
         client = make_client(True)
         now = datetime.now()  # 预约必须未来时间，否则真实接口报 600053
         for label, context in SCENARIOS:
-            stores, items = prepare_live(client, context, "宁波", "长兴路")
+            stores, items = prepare_live(client, context, city, keyword)
             if not items:
                 print(f"\n===== {label} =====\n  （未预热到可计价商品：外送需真实地址，或当前门店无可用商品，跳过）")
                 continue

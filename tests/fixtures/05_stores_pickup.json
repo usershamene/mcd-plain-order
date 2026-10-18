@@ -6,8 +6,8 @@
   "traceId": "af11df8bf73b861d61b7cf233d368128",
   "data": [
     {
-      "storeCode": "3330492",
-      "storeName": "麦当劳宁波长兴路得来速餐厅",
+      "storeCode": "S0001",
+      "storeName": "示例得来速餐厅A",
       "address": "（门店地址已脱敏）",
       "distance": 605,
       "businessStatus": true,
@@ -30,8 +30,8 @@
       ]
     },
     {
-      "storeCode": "3330393",
-      "storeName": "麦当劳宁波江北区IF Mall餐厅",
+      "storeCode": "S0002",
+      "storeName": "示例餐厅B",
       "address": "（门店地址已脱敏）",
       "distance": 1981,
       "businessStatus": true,
@@ -54,8 +54,8 @@
       ]
     },
     {
-      "storeCode": "3330444",
-      "storeName": "麦当劳宁波江北区明州广场餐厅",
+      "storeCode": "S0003",
+      "storeName": "示例餐厅C",
       "address": "（门店地址已脱敏）",
       "distance": 4461,
       "businessStatus": true,
@@ -78,8 +78,8 @@
       ]
     },
     {
-      "storeCode": "3330273",
-      "storeName": "麦当劳宁波海曙区高桥印象城餐厅",
+      "storeCode": "S0004",
+      "storeName": "示例餐厅D",
       "address": "（门店地址已脱敏）",
       "distance": 5966,
       "businessStatus": true,
@@ -102,8 +102,8 @@
       ]
     },
     {
-      "storeCode": "3330495",
-      "storeName": "麦当劳宁波祥北路餐厅",
+      "storeCode": "S0005",
+      "storeName": "示例餐厅E",
       "address": "（门店地址已脱敏）",
       "distance": 6522,
       "businessStatus": true,

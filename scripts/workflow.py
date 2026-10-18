@@ -146,11 +146,13 @@ def _extract_order_id(resp: dict) -> str:
     return str(oid)
 
 
-def _nearby_args(method: str, city: str, keyword: str) -> dict:
+def _nearby_args(method: str, city: str | None, keyword: str | None) -> dict:
     be_type = {"pickup": 1, "dt": 5, "delivery": 2}[method]
     # query-nearby-stores / delivery-query-stores 是"发现门店"调用，不需要 storeCode
     # （storeCode 在拿到门店后才用于计价/下单）
-    args = {"beType": be_type, "searchType": 2, "city": city}
+    args: dict = {"beType": be_type, "searchType": 2}
+    if city:
+        args["city"] = city
     if keyword:
         args["keyword"] = keyword
     return args
@@ -178,7 +180,7 @@ def run_fast_order(
     *,
     now: datetime | None = None,
     confirmed: bool = False,
-    city: str = "宁波",
+    city: str | None = None,
     keyword: str = "",
     stores: list[dict] | None = None,
     amount_limit: float | None = None,
@@ -188,6 +190,7 @@ def run_fast_order(
     client : 具备 .call(name, args) 的对象（线上 MCDClient / 测试 FakeClient）
     context: {user_specified, is_driving, has_address, address_id}
     items  : [{"code", "qty", "name"?}]
+    city   : 城市名；由 location.detect_city() 按 IP 自动定位后传入，不向用户询问。
     stores : 可选，已查到的门店列表。**真实环境里 query-nearby-stores 同一入参
              两次调用可能返回不同门店**，若上游已用于选商品，务必把同一份 stores
              传进来，避免"选品门店 ≠ 计价门店"导致 60006。

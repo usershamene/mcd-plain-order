@@ -152,7 +152,7 @@ class TestAssemble(unittest.TestCase):
 class TestFastPlan(unittest.TestCase):
     def _plan(self, method="pickup", adjusted=False):
         return {
-            "store": {"storeCode": "3330492", "storeName": "麦当劳宁波长兴路得来速餐厅", "distance": 605},
+            "store": {"storeCode": "S0001", "storeName": "示例得来速餐厅", "distance": 605},
             "method": method,
             "eta_minutes": 9,
             "reservation": {
@@ -179,7 +179,7 @@ class TestFastPlan(unittest.TestCase):
 
     def test_store_and_reservation_lines(self):
         out = render.render_fast_plan(self._plan())
-        self.assertIn("· 最近门店：麦当劳宁波长兴路得来速餐厅（605 米）", out)
+        self.assertIn("· 最近门店：示例得来速餐厅（605 米）", out)
         self.assertIn("· 预约到店：2026-10-11 09:14（早餐时段，到店即取）", out)
 
     def test_adjusted_note(self):
@@ -217,7 +217,7 @@ class TestFastPlan(unittest.TestCase):
         out = render.render_message(result)
         self.assertIn("📍 取餐安排", out)
         self.assertNotIn("🍔 极速点单", out)
-        self.assertIn("· 最近门店：麦当劳宁波长兴路得来速餐厅（605 米）", out)
+        self.assertIn("· 最近门店：示例得来速餐厅（605 米）", out)
 
 
 if __name__ == "__main__":
