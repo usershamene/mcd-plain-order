@@ -1,0 +1,19 @@
+{
+  "success": true,
+  "code": 200,
+  "message": "请求成功",
+  "datetime": "2026-10-11 09:07:55",
+  "traceId": "456c71e36be7eaf1daacdb25c8d7bcc0",
+  "data": {
+    "availablePoint": "180.7",
+    "accountId": "MASKED_ACCOUNT",
+    "accumulativePoint": "180.7",
+    "currency": "麦享会积分",
+    "currentMouthExpirePoint": "0",
+    "expiredPoint": "0",
+    "frozenPoint": "0",
+    "lastMouthExpirePoint": "0",
+    "nextMouthExpirePoint": "0",
+    "usedPoint": "0"
+  }
+}

@@ -12,15 +12,12 @@ from datetime import datetime
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
+sys.path.insert(0, str(Path(__file__).resolve().parent))  # 让 fixtures 可导入
 
 import fast_order  # noqa: E402
+from fixtures import probe_dir  # noqa: E402
 
-PROBE = (
-    Path(__file__).resolve().parent.parent.parent
-    / "mcp-research"
-    / "probe_output"
-    / "05_stores_pickup.json"
-)
+PROBE = probe_dir() / "05_stores_pickup.json"
 
 
 def load_stores() -> list[dict]:

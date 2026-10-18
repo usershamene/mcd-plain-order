@@ -11,15 +11,12 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
+sys.path.insert(0, str(Path(__file__).resolve().parent))  # 让 fixtures 可导入
 
 import newitems  # noqa: E402
+from fixtures import probe_dir  # noqa: E402
 
-PROBE = (
-    Path(__file__).resolve().parent.parent.parent
-    / "mcp-research"
-    / "probe_output"
-    / "07_meals_pickup.json"
-)
+PROBE = probe_dir() / "07_meals_pickup.json"
 
 
 def load_probe() -> dict:

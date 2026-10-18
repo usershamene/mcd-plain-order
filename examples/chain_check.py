@@ -17,14 +17,16 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "scripts"))
+sys.path.insert(0, str(ROOT / "tests"))  # 复用 tests/fixtures 的 probe_dir
 
 import fast_order  # noqa: E402
 import render  # noqa: E402
 import newitems  # noqa: E402
 import reminders  # noqa: E402
 import personalize  # noqa: E402
+from fixtures import probe_dir  # noqa: E402
 
-PROBE = ROOT.parent / "mcp-research" / "probe_output"
+PROBE = probe_dir()
 
 
 def load_raw(name: str) -> dict:

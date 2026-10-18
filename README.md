@@ -98,4 +98,4 @@ cp .env.example .env
 
 ## 许可证
 
-<!-- TODO：建议补充开源许可证，如 MIT -->
+[MIT](LICENSE)

@@ -3,7 +3,7 @@
 > 调研时间：2026-10-10 23:50（北京时间）
 > 数据来源：直接对 `https://mcp.mcd.cn` 发起 MCP 协议调用（`initialize` + `tools/list` 取全量真实 schema，再以 `tools/call` 实测只读工具的真实返回）
 > 服务版本：`mcd-mcp v1.0.0`，实测在线工具 **35 个**（官方 README 宣传约 40 个，以实测为准）
-> 原始 schema 存档：`mcp-research/tools_schema.json`
+> 原始 schema 存档：本地研究资料，未随仓库分发。
 
 ---
 

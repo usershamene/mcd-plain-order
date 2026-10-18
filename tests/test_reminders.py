@@ -9,14 +9,12 @@ from datetime import datetime
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
+sys.path.insert(0, str(Path(__file__).resolve().parent))  # 让 fixtures 可导入
 
 import reminders  # noqa: E402
+from fixtures import probe_dir  # noqa: E402
 
-PROBE = (
-    Path(__file__).resolve().parent.parent.parent
-    / "mcp-research"
-    / "probe_output"
-)
+PROBE = probe_dir()
 
 
 def load(name: str) -> dict:

@@ -2,7 +2,7 @@
 """极速点单端到端演示：真实门店数据 + 确定性编排 + 标准化输出。
 
 跑法：python examples/fast_order_demo.py
-依赖：scripts/fast_order.py + scripts/render.py + ../mcp-research/probe_output/05_stores_pickup.json
+依赖：scripts/fast_order.py + scripts/render.py + tests/fixtures/05_stores_pickup.json
 """
 from __future__ import annotations
 
@@ -13,16 +13,13 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "scripts"))
+sys.path.insert(0, str(ROOT / "tests"))  # 复用 tests/fixtures 的 probe_dir
 
 import fast_order  # noqa: E402
 import render  # noqa: E402
+from fixtures import probe_dir  # noqa: E402
 
-PROBE = (
-    ROOT.parent
-    / "mcp-research"
-    / "probe_output"
-    / "05_stores_pickup.json"
-)
+PROBE = probe_dir() / "05_stores_pickup.json"
 
 
 def load_stores() -> list[dict]:

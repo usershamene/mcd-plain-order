@@ -13,15 +13,13 @@ from datetime import datetime
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
+sys.path.insert(0, str(Path(__file__).resolve().parent))  # 让 fixtures 可导入
 
 import workflow  # noqa: E402
 import render  # noqa: E402
+from fixtures import probe_dir  # noqa: E402
 
-PROBE = (
-    Path(__file__).resolve().parent.parent.parent
-    / "mcp-research"
-    / "probe_output"
-)
+PROBE = probe_dir()
 
 WINDOW = "早餐(06:14至10:15)，午餐(10:44至14:15)，下午茶(14:44至16:45)，夜市(17:14至21:45)，宵夜(22:14至22:46)"
 
