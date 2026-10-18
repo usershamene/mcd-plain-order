@@ -22,7 +22,18 @@ import os
 from datetime import datetime
 from typing import Iterable
 
-DEFAULT_PROFILE_PATH = os.path.join(os.path.dirname(__file__), "user_profile.json")
+def _default_profile_path() -> str:
+    """画像默认落在用户目录（可写），而不是 skill 目录（DSH 下通常只读）。
+
+    可用环境变量 MCD_PROFILE_PATH 覆盖。
+    """
+    env = os.environ.get("MCD_PROFILE_PATH")
+    if env:
+        return env
+    return os.path.join(os.path.expanduser("~"), ".mcd-plain-order", "user_profile.json")
+
+
+DEFAULT_PROFILE_PATH = _default_profile_path()
 
 # 受控关键词表：把"用户说的偏好词"映射到"餐品名/标签里要匹配的关键词"。
 # 不在表里的偏好词，直接用原词做子串匹配（兜底）。
@@ -60,8 +71,11 @@ def load_profile(path: str = DEFAULT_PROFILE_PATH) -> dict:
 
 
 def save_profile(profile: dict, path: str = DEFAULT_PROFILE_PATH) -> None:
-    """写回画像，并打时间戳。"""
+    """写回画像，并打时间戳。父目录不存在时自动创建（默认路径在用户目录下）。"""
     profile["updated_at"] = datetime.now().isoformat(timespec="seconds")
+    parent = os.path.dirname(path)
+    if parent:
+        os.makedirs(parent, exist_ok=True)
     with open(path, "w", encoding="utf-8") as f:
         json.dump(profile, f, ensure_ascii=False, indent=2)
 

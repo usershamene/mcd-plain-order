@@ -17,6 +17,7 @@ sys.path.insert(0, str(ROOT / "tests"))  # 复用 tests/fixtures 的 probe_dir
 
 import fast_order  # noqa: E402
 import render  # noqa: E402
+import console  # noqa: E402
 from fixtures import probe_dir  # noqa: E402
 
 PROBE = probe_dir() / "05_stores_pickup.json"
@@ -42,6 +43,7 @@ def demo(label: str, context: dict, now: datetime) -> None:
 
 
 def main() -> None:
+    console.enable_utf8()
     now = datetime(2026, 10, 11, 9, 0)  # 早餐高峰
     demo("默认（步行到店自取）", {}, now)
     demo("开车（优先得来速）", {"is_driving": True}, now)

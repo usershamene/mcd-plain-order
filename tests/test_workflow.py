@@ -134,7 +134,7 @@ class TestPickupFlow(unittest.TestCase):
 
     def test_confirm_places_order_with_reservation(self):
         c = FakeClient()
-        out = workflow.run_fast_order(c, {}, ITEMS, now=NOW, confirmed=True)
+        out = workflow.run_fast_order(c, {}, ITEMS, now=NOW, confirmed=True, user_confirmation="下单")
         self.assertIn("receipt", out)
         self.assertEqual(out["order_id"], "ORDER_ABC_123")
         # create-order 被调用，且带走店自取参数（无 beCode、带 reservationDate）
@@ -146,7 +146,7 @@ class TestPickupFlow(unittest.TestCase):
 
     def test_take_way_code_from_price_not_invented(self):
         c = FakeClient()
-        workflow.run_fast_order(c, {}, ITEMS, now=NOW, confirmed=True)
+        workflow.run_fast_order(c, {}, ITEMS, now=NOW, confirmed=True, user_confirmation="下单")
         price_args = [a for n, a in c.calls if n == "calculate-price"][0]
         self.assertNotIn("takeWayCode", price_args)  # 计价阶段还不带 takeWayCode
 
@@ -163,6 +163,12 @@ class TestPickupFlow(unittest.TestCase):
         args = [a for n, a in c.calls if n == "query-nearby-stores"][0]
         self.assertEqual(args.get("city"), "示例市")
 
+    def test_confirmed_requires_user_confirmation(self):
+        """confirmed=True 但没有用户原话 → 必须报错（防止模型自证）。"""
+        c = FakeClient()
+        with self.assertRaises(workflow.WorkflowError):
+            workflow.run_fast_order(c, {}, ITEMS, now=NOW, confirmed=True)
+
     def test_injected_stores_use_first_store(self):
         """注入 stores 时按调用方顺序取第一家（不再按距离重选），保证选品/计价同店。"""
         base = load_stores_raw()[0]
@@ -170,7 +176,7 @@ class TestPickupFlow(unittest.TestCase):
         nearest = {**base, "storeCode": "NEAREST", "distance": 1}
         c = FakeClient()
         out = workflow.run_fast_order(
-            c, {}, ITEMS, now=NOW, confirmed=True, stores=[caller_choice, nearest]
+            c, {}, ITEMS, now=NOW, confirmed=True, user_confirmation="下单", stores=[caller_choice, nearest]
         )
         self.assertEqual(out["order_id"], "ORDER_ABC_123")
         create_args = [a for n, a in c.calls if n == "create-order"][0]
@@ -179,7 +185,7 @@ class TestPickupFlow(unittest.TestCase):
     def test_price_call_has_no_reservation_date(self):
         """calculate-price 不传 reservationDate（那是 create-order 的参数，传了会让部分商品 60006）。"""
         c = FakeClient()
-        workflow.run_fast_order(c, {}, ITEMS, now=NOW, confirmed=True)
+        workflow.run_fast_order(c, {}, ITEMS, now=NOW, confirmed=True, user_confirmation="下单")
         price_args = [a for n, a in c.calls if n == "calculate-price"][0]
         self.assertNotIn("reservationDate", price_args)
         # 但 create-order 必须带 reservationDate（到店预约场景）
@@ -208,7 +214,7 @@ class TestPriceExtraction(unittest.TestCase):
 class TestDtFlow(unittest.TestCase):
     def test_dt_passes_be_code_and_take_way(self):
         c = FakeClient()
-        out = workflow.run_fast_order(c, {"is_driving": True}, ITEMS, now=NOW, confirmed=True)
+        out = workflow.run_fast_order(c, {"is_driving": True}, ITEMS, now=NOW, confirmed=True, user_confirmation="下单")
         self.assertEqual(out["order_id"], "ORDER_ABC_123")
         create_args = [a for n, a in c.calls if n == "create-order"][0]
         self.assertEqual(create_args["beCode"], "DT_BE_CODE")  # 来自 query-nearby-stores
@@ -219,12 +225,12 @@ class TestDeliveryFlow(unittest.TestCase):
     def test_delivery_requires_address(self):
         c = FakeClient()
         with self.assertRaises(workflow.WorkflowError):
-            workflow.run_fast_order(c, {"has_address": True}, ITEMS, now=NOW, confirmed=True)
+            workflow.run_fast_order(c, {"has_address": True}, ITEMS, now=NOW, confirmed=True, user_confirmation="下单")
 
     def test_delivery_passes_be_code_no_take_way(self):
         c = FakeClient()
         out = workflow.run_fast_order(
-            c, {"has_address": True, "address_id": "ADDR1"}, ITEMS, now=NOW, confirmed=True
+            c, {"has_address": True, "address_id": "ADDR1"}, ITEMS, now=NOW, confirmed=True, user_confirmation="下单"
         )
         create_args = [a for n, a in c.calls if n == "create-order"][0]
         self.assertEqual(create_args["beCode"], "DL_BE_CODE")
@@ -251,7 +257,7 @@ class TestErrorPaths(unittest.TestCase):
             if n == "query-nearby-stores"
             else FakeClient.call(c, n, a)
         )
-        out = workflow.run_fast_order(c, {}, ITEMS, now=NOW, confirmed=True)
+        out = workflow.run_fast_order(c, {}, ITEMS, now=NOW, confirmed=True, user_confirmation="下单")
         self.assertIn("error", out["fast_plan"])
         self.assertEqual(c.called("create-order"), [])  # 无店不下单
 
@@ -288,12 +294,12 @@ class TestGroupFlow(unittest.TestCase):
     def test_group_requires_address(self):
         c = FakeClient()
         with self.assertRaises(workflow.WorkflowError):
-            workflow.run_fast_order(c, {"user_specified": "group"}, ITEMS, now=NOW, confirmed=True)
+            workflow.run_fast_order(c, {"user_specified": "group"}, ITEMS, now=NOW, confirmed=True, user_confirmation="下单")
 
     def test_group_full_flow_fields(self):
         c = FakeClient()
         out = workflow.run_fast_order(
-            c, {"user_specified": "group", "address_id": "ADDR_G"}, ITEMS, now=NOW, confirmed=True
+            c, {"user_specified": "group", "address_id": "ADDR_G"}, ITEMS, now=NOW, confirmed=True, user_confirmation="下单"
         )
         self.assertEqual(out["order_id"], "ORDER_ABC_123")
         create_args = [a for n, a in c.calls if n == "create-order"][0]
@@ -308,7 +314,7 @@ class TestGroupFlow(unittest.TestCase):
     def test_group_meal_assistance_before_price(self):
         c = FakeClient()
         workflow.run_fast_order(
-            c, {"user_specified": "group", "address_id": "ADDR_G"}, ITEMS, now=NOW, confirmed=True
+            c, {"user_specified": "group", "address_id": "ADDR_G"}, ITEMS, now=NOW, confirmed=True, user_confirmation="下单"
         )
         names = [n for n, _ in c.calls]
         self.assertIn("query-meal-assistance", names)
@@ -322,7 +328,7 @@ class TestGroupFlow(unittest.TestCase):
     def test_group_price_carries_gm_service_code(self):
         c = FakeClient()
         workflow.run_fast_order(
-            c, {"user_specified": "group", "address_id": "ADDR_G"}, ITEMS, now=NOW, confirmed=True
+            c, {"user_specified": "group", "address_id": "ADDR_G"}, ITEMS, now=NOW, confirmed=True, user_confirmation="下单"
         )
         price_args = [a for n, a in c.calls if n == "calculate-price"][0]
         self.assertEqual(price_args["gmServiceCode"], "GMS_001")
@@ -368,7 +374,7 @@ class TestAmountLimit(unittest.TestCase):
         c = FakeClientBig()
         with self.assertRaises(workflow.guard.GuardError):
             workflow.run_fast_order(
-                c, {"has_address": True, "address_id": "ADDR1"}, ITEMS, now=NOW, confirmed=True
+                c, {"has_address": True, "address_id": "ADDR1"}, ITEMS, now=NOW, confirmed=True, user_confirmation="下单"
             )
 
     def test_over_limit_allowed_when_raised(self):
@@ -378,7 +384,7 @@ class TestAmountLimit(unittest.TestCase):
             {"has_address": True, "address_id": "ADDR1"},
             ITEMS,
             now=NOW,
-            confirmed=True,
+            confirmed=True, user_confirmation="下单",
             amount_limit=1000,
         )
         self.assertEqual(out["order_id"], "ORDER_ABC_123")
@@ -387,7 +393,7 @@ class TestAmountLimit(unittest.TestCase):
         """团餐(group)默认上限自动抬高，¥400 大单不再被 200 默认误拦。"""
         c = FakeClientBig()
         out = workflow.run_fast_order(
-            c, {"user_specified": "group", "address_id": "ADDR_G"}, ITEMS, now=NOW, confirmed=True
+            c, {"user_specified": "group", "address_id": "ADDR_G"}, ITEMS, now=NOW, confirmed=True, user_confirmation="下单"
         )
         self.assertEqual(out["order_id"], "ORDER_ABC_123")
 

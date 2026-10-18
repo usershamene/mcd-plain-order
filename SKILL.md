@@ -18,9 +18,10 @@ agent_created: true
 
 ## 前置条件
 
-1. 已配置 `mcd-mcp` 连接器，Token 经环境变量 `MCD_MCP_TOKEN` 注入（不落盘）
+1. 已配置 `mcd-mcp` 连接器，Token 经环境变量 `MCD_MCP_TOKEN` 注入（不落盘；**禁止写进命令行 / 文件 / 日志，也不要把 token 贴进对话**）
 2. 读取会员数据（积分 / 券 / 订单）要求该 Token 已绑定麦当劳会员账号
 3. Python 3.10+，仅标准库，无需第三方包
+4. Windows 控制台先设 `$env:PYTHONIOENCODING='utf-8'`（或直接用 `scripts/order.py`，已内置 UTF-8 输出）
 
 ## 时间与定位（自动，不询问）
 
@@ -65,6 +66,8 @@ agent_created: true
 | 到店自取 / 得来速 | 展示门店 + **预约到店时间**（标题写"预计 N 分钟到店"） |
 | 麦乐送 / 企业团餐 | 不挂预约时段，展示派单门店（标题写"预计 N 分钟送达"） |
 
+> 下单回执必须同时给出 `orderId` 与门店 `storeName + storeCode`，方便用户核对是否下错店。
+
 **失败必须显性化**：业务失败原文展示 `message`，禁止伪造成功、禁止把失败当作已完成。
 
 ## 执行流程
@@ -83,6 +86,8 @@ agent_created: true
 8  create-order                              → 支付链接
 9  输出回执（含撤销提示，guard.receipt_notice()）
 ```
+
+> 推荐入口：`python scripts/order.py --method pickup --items code:qty --city <城市>`（只预览）；用户明确说「下单」后加 `--confirm "下单"`。
 
 ### 极速点单路径（尖入口）
 
@@ -166,6 +171,18 @@ success == false               →  业务失败，原文展示 message，禁止
 
 完整清单：`references/design-standards.md`
 
+### 6. 下单必须走 workflow，禁止手写参数
+
+- 一律用 `workflow.run_fast_order(...)`（或 `scripts/order.py`），**不得自己拼 `storeCode` / `items` / `beType`**。
+- 门店编码只能来自 `query-nearby-stores` / `delivery-query-stores` 的返回；**禁止凭印象填写**（实测曾把柳西 `3330716` 当成长兴路 `3330492`，导致下错店）。
+- 下单回执必须同时打印 `storeName` 与 `storeCode`，供用户核对门店。
+- 指定门店用 `--store-code`，CLI 会校验它确实在查询结果里。
+
+### 7. 计价只认 calculate-price
+
+- 金额只取 `calculate-price` 返回的 `originalPrice` / `price` / `discount`；
+- **不得声称接口未返回的优惠**（如"第二份半价""实际会更便宜"）——算价里没有就是没有。
+
 ## 个性化（用户画像）
 
 基于用户的历史偏好与时间特征做个性化，但**状态与规则都在 Skill 内**，不依赖外部服务——Skill 本就运行在 Agent 内部，无需另起组件。
@@ -182,7 +199,9 @@ success == false               →  业务失败，原文展示 message，禁止
 
 | 脚本 | 用途 | 何时用 |
 | --- | --- | --- |
+| `scripts/order.py` | 一站式下单 CLI：预览 / 确认、校验门店编码、UTF-8；走 workflow | **首选入口**：用户点单 / 下单 |
 | `scripts/mcd_client.py` | MCP 客户端（鉴权 / 会话 / 业务校验） | 所有工具调用 |
+| `scripts/console.py` | Windows 控制台 UTF-8（脚本入口调用） | 脚本需要打印中文时 |
 | `scripts/clock.py` | 当前时间（MCP `now-time-info` 优先，本机时钟兜底） | 需要"现在几点"时（自动，不询问） |
 | `scripts/location.py` | 按 IP 定位城市 + 轻度确认话术 | 需要城市时（自动，不询问） |
 | `scripts/router.py` | 取餐方式路由与参数构造 | 每次构造工具参数前 |

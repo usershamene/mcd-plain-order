@@ -24,8 +24,10 @@ import render  # noqa: E402
 import newitems  # noqa: E402
 import reminders  # noqa: E402
 import personalize  # noqa: E402
+import console  # noqa: E402
 from fixtures import probe_dir  # noqa: E402
 
+console.enable_utf8()
 PROBE = probe_dir()
 
 

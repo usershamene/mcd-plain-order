@@ -20,6 +20,7 @@ import workflow  # noqa: E402
 import render  # noqa: E402
 import fast_order  # noqa: E402
 import location  # noqa: E402
+import console  # noqa: E402
 from mcd_client import MCDClient  # noqa: E402
 
 
@@ -32,6 +33,7 @@ def _brief(obj, keys, n=3):
 
 
 def main() -> int:
+    console.enable_utf8()
     token = os.environ.get("MCD_MCP_TOKEN", "").strip()
     if not token:
         print("MCD_MCP_TOKEN 未设置，退出")

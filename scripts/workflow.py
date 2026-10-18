@@ -180,6 +180,7 @@ def run_fast_order(
     *,
     now: datetime | None = None,
     confirmed: bool = False,
+    user_confirmation: str | None = None,
     city: str | None = None,
     keyword: str = "",
     stores: list[dict] | None = None,
@@ -196,6 +197,8 @@ def run_fast_order(
              不传则由 workflow 自行查询并按业务规则选店。
 
     两阶段：confirmed=False 只出「方案 + 算价预览」（不写）；confirmed=True 才过闸门下单。
+    user_confirmation：用户在对话中明确说出的确认原话（如「下单」「确认」）。confirmed=True
+                       时必填，由 guard 校验是否含明确意图——禁止模型自行置 True。
 
     amount_limit：单次金额安全上限（元）。默认 None 表示按取餐方式动态兜底
     （guard.limit_for_method：团餐抬高到 5000，其余 200）；显式传入时以传入为准。
@@ -295,10 +298,16 @@ def run_fast_order(
         "delivery": ("addressId",),
         "group": ("addressId", "gmServiceCode"),
     }[method]
+    if not user_confirmation:
+        raise WorkflowError(
+            "下单前必须由用户在对话中明确确认（如「下单」「确认」），并把原话传入 "
+            "user_confirmation；禁止模型自行置 confirmed=True。"
+        )
     guard.require(
         "create-order",
         order_args,
         confirmed=True,
+        user_said=user_confirmation,
         amount=price["pay"],
         required_fields=required,
         amount_limit=amount_limit,

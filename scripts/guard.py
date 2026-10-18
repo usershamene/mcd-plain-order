@@ -45,6 +45,25 @@ def limit_for_method(method: str) -> float:
     return GROUP_AMOUNT_LIMIT if method == "group" else DEFAULT_AMOUNT_LIMIT
 
 
+# 各写操作可接受的"用户确认语"关键词。调用方必须把用户在对话里的原话传入 user_said，
+# 由本模块判断是否包含明确意图——避免把"外带吧"这类参数回答误当成下单确认。
+_CONFIRM_WORDS: dict[str, tuple[str, ...]] = {
+    "create-order": ("下单", "确认", "要了", "买了", "就这个", "来一份", "来一个"),
+    "party-order-create": ("下单", "预约", "确认", "要了"),
+    "mall-create-order": ("兑换", "下单", "确认", "要了"),
+    "cancel-order": ("取消", "退掉", "不要了", "别下了", "撤单", "确认"),
+    "auto-bind-coupons": ("领", "确认", "要"),
+    "draw-lottery": ("抽", "确认", "要"),
+    "delivery-create-address": ("创建", "新增", "保存", "确认"),
+}
+
+
+def has_confirm_intent(tool: str, user_said: str) -> bool:
+    """用户这句话是否包含该写操作的明确确认意图。"""
+    words = _CONFIRM_WORDS.get(tool, ("确认", "要", "好"))
+    return any(w in user_said for w in words)
+
+
 class GuardError(Exception):
     """闸门拦截。message 必须能直接展示给用户。"""
 
@@ -64,6 +83,7 @@ def check(
     args: dict | None = None,
     *,
     confirmed: bool = False,
+    user_said: str | None = None,
     amount: float | None = None,
     amount_limit: float = DEFAULT_AMOUNT_LIMIT,
     required_fields: tuple[str, ...] | None = None,
@@ -73,6 +93,7 @@ def check(
 
     参数：
       confirmed       用户是否已明确同意（默认 False = 拦截）
+      user_said       用户在对话里的确认原话（如「下单」）；写操作必填，由代码校验意图
       amount          本次操作的实付金额（元）
       required_fields 该工具的业务必填字段
       preflight_done  draw-lottery 专用：是否已展示过 drawDecision.nextConsumption
@@ -85,6 +106,18 @@ def check(
 
     if not confirmed:
         return CheckResult(False, "这是会产生实际费用的操作，需要你确认后才会执行。")
+
+    # 确认不能只靠模型自报：必须带上用户在对话里的原话，且原话要有明确意图。
+    if not user_said:
+        return CheckResult(
+            False,
+            "缺少用户确认语：请把用户明确说「下单 / 确认」的原话传入 user_said，再执行。",
+        )
+    if not has_confirm_intent(tool, user_said):
+        return CheckResult(
+            False,
+            f"用户这句话「{user_said}」不像是明确的确认，请再问一次（例如「下单」「确认」）。",
+        )
 
     for field in required_fields or ():
         if args.get(field) in (None, "", [], {}):

@@ -218,8 +218,22 @@ class TestGuard(unittest.TestCase):
         self.assertFalse(guard.check("draw-lottery").ok)
 
     def test_confirmed_write_passes(self):
-        result = guard.check("create-order", {"storeCode": "1"}, confirmed=True)
+        result = guard.check("create-order", {"storeCode": "1"}, confirmed=True, user_said="下单")
         self.assertTrue(result.ok)
+
+    def test_confirmed_without_user_said_blocked(self):
+        """确认不能只靠模型自报：缺用户原话必须拦。"""
+        result = guard.check("create-order", {"storeCode": "1"}, confirmed=True)
+        self.assertFalse(result.ok)
+        self.assertIn("确认语", result.reason)
+
+    def test_ambiguous_user_said_blocked(self):
+        """「外带吧」只是取餐方式，不是下单确认——实测踩过的坑。"""
+        result = guard.check(
+            "create-order", {"storeCode": "1"}, confirmed=True, user_said="外带吧"
+        )
+        self.assertFalse(result.ok)
+        self.assertIn("不像是明确", result.reason)
 
     def test_unknown_tool_blocked_and_explains(self):
         result = guard.check("some-new-tool", confirmed=True)
@@ -227,21 +241,23 @@ class TestGuard(unittest.TestCase):
         self.assertIn("未知的写操作", result.reason)
 
     def test_amount_limit_requires_second_confirmation(self):
-        result = guard.check("create-order", {}, confirmed=True, amount=350.0, amount_limit=200.0)
+        result = guard.check(
+            "create-order", {}, confirmed=True, user_said="下单", amount=350.0, amount_limit=200.0
+        )
         self.assertFalse(result.ok)
         self.assertIn("上限", result.reason)
 
     def test_missing_required_field_blocked(self):
         result = guard.check(
-            "create-order", {}, confirmed=True, required_fields=("storeCode",)
+            "create-order", {}, confirmed=True, user_said="下单", required_fields=("storeCode",)
         )
         self.assertFalse(result.ok)
         self.assertIn("storeCode", result.reason)
 
     def test_lottery_requires_preflight(self):
-        blocked = guard.check("draw-lottery", confirmed=True)
+        blocked = guard.check("draw-lottery", confirmed=True, user_said="抽奖")
         self.assertFalse(blocked.ok)
-        passed = guard.check("draw-lottery", confirmed=True, preflight_done=True)
+        passed = guard.check("draw-lottery", confirmed=True, user_said="抽奖", preflight_done=True)
         self.assertTrue(passed.ok)
 
     def test_require_raises_with_reason(self):

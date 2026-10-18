@@ -39,6 +39,7 @@ import fast_order  # noqa: E402
 import render  # noqa: E402
 import workflow  # noqa: E402
 import location  # noqa: E402
+import console  # noqa: E402
 
 NOW = datetime(2026, 10, 11, 9, 0)
 ITEMS = [
@@ -145,7 +146,10 @@ def demo(label: str, context: dict, items, client, *, live: bool, really_order: 
     if really_order:
         # 真下单：仅当用户显式确认（命令行 --really-order）才走到这
         try:
-            done = workflow.run_fast_order(client, context, items, now=now, confirmed=True, stores=stores)
+            done = workflow.run_fast_order(
+                client, context, items, now=now, confirmed=True,
+                user_confirmation="下单", stores=stores,
+            )
         except Exception as exc:
             print(f"\n— 下单失败（已按安全约定中止，未造成订单）—\n  {exc}")
             return
@@ -156,13 +160,17 @@ def demo(label: str, context: dict, items, client, *, live: bool, really_order: 
         print("\n（live 模式仅只读预览；要真下单请加 --really-order）")
     else:
         # 离线：模拟确认下单，验证整条链路
-        done = workflow.run_fast_order(client, context, items, now=NOW, confirmed=True, stores=stores)
+        done = workflow.run_fast_order(
+            client, context, items, now=NOW, confirmed=True,
+            user_confirmation="下单", stores=stores,
+        )
         print("\n— 确认后（已下单，模拟）—")
         print(render.render_message(done))
         print(f"[orderId] {done.get('order_id')}")
 
 
 def main() -> None:
+    console.enable_utf8()
     parser = argparse.ArgumentParser(description="极速点单端到端演示")
     parser.add_argument(
         "--really-order",
