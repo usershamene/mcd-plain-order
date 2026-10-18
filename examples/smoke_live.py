@@ -56,14 +56,15 @@ def main() -> int:
     if not stores:
         print("  无门店。raw:", json.dumps(stores_resp, ensure_ascii=False)[:600])
         return 0
-    s0 = stores[0]
-    print("  门店字段示例:", json.dumps(_brief(s0, (
+    # 仅用于打印真实字段样例，不代表最终选店
+    sample_store = stores[0]
+    print("  门店字段示例:", json.dumps(_brief(sample_store, (
         "storeCode", "storeName", "distance", "businessStatus",
         "beCode", "reservation", "reservationTimeOptions",
     )), ensure_ascii=False))
-    # workflow 内部会用 select_nearest_store（仅营业中且支持预约，按距离升序）重新选店；
-    # 菜单必须从「它实际会选中的那家店」取，否则会「选品门店 ≠ 计价门店」→ 60006。
-    menu_store = fast_order.select_nearest_store(stores) or s0
+    # 菜单从「本次选品门店」取；步骤5 会把这家店放在注入列表首位，
+    # run_fast_order 直接采用它（同店选品 + 计价，避免 60006）。
+    menu_store = fast_order.select_nearest_store(stores) or sample_store
     store_code = menu_store.get("storeCode")
     print("  选品门店:", store_code, menu_store.get("storeName"))
 
@@ -124,7 +125,7 @@ def main() -> int:
     # 5) 端到端只读编排（pickup, confirmed=False）—— 验证 router 归一化 + workflow 提取 + render 整体
     try:
         out = workflow.run_fast_order(
-            client, {}, items, city=city, keyword=keyword, confirmed=False, stores=stores
+            client, {}, items, city=city, keyword=keyword, confirmed=False, stores=[menu_store]
         )
         print("=== workflow.run_fast_order(pickup, 只读预览) ===")
         print(render.render_message(out))

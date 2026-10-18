@@ -191,9 +191,9 @@ def run_fast_order(
     context: {user_specified, is_driving, has_address, address_id}
     items  : [{"code", "qty", "name"?}]
     city   : 城市名；由 location.detect_city() 按 IP 自动定位后传入，不向用户询问。
-    stores : 可选，已查到的门店列表。**真实环境里 query-nearby-stores 同一入参
-             两次调用可能返回不同门店**，若上游已用于选商品，务必把同一份 stores
-             传进来，避免"选品门店 ≠ 计价门店"导致 60006。
+    stores : 可选，已查到的门店列表。**传入时按调用方顺序取第一家**（不再按距离重选），
+             因此请把「已用于选商品的那家店」放在首位，保证选品门店 == 计价门店；
+             不传则由 workflow 自行查询并按业务规则选店。
 
     两阶段：confirmed=False 只出「方案 + 算价预览」（不写）；confirmed=True 才过闸门下单。
 
@@ -203,6 +203,7 @@ def run_fast_order(
     now = now or datetime.now()
     method = fast_order.choose_pickup_method(context)
     mode = METHOD_TO_MODE[method]
+    stores_injected = stores is not None  # 调用方注入门店列表时，以调用方顺序为准
 
     # 单次金额上限：按取餐方式动态兜底（团餐抬高，避免 ¥300 起送单被默认 200 误拦）；
     # 显式传入 amount_limit 时以传入为准。
@@ -235,7 +236,10 @@ def run_fast_order(
     be_code = _extract_be_code(stores, method)
 
     # 2. 极速方案（选店 + ETA + 预约）
-    plan = fast_order.build_fast_order_plan(stores, context, now)
+    # 调用方注入 stores 时，按调用方顺序以第一家为准（它通常就是已用于选品的那家店）；
+    # 未注入时由 build_fast_order_plan 按业务规则自动选店。
+    pinned = stores[0] if (stores_injected and method in ("pickup", "dt") and stores) else None
+    plan = fast_order.build_fast_order_plan(stores, context, now, store=pinned)
     if plan.get("error"):
         return {"fast_plan": plan}  # render 软提示，不继续下单
 

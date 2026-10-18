@@ -163,6 +163,19 @@ class TestPickupFlow(unittest.TestCase):
         args = [a for n, a in c.calls if n == "query-nearby-stores"][0]
         self.assertEqual(args.get("city"), "示例市")
 
+    def test_injected_stores_use_first_store(self):
+        """注入 stores 时按调用方顺序取第一家（不再按距离重选），保证选品/计价同店。"""
+        base = load_stores_raw()[0]
+        caller_choice = {**base, "storeCode": "CALLER_CHOICE", "distance": 9999}
+        nearest = {**base, "storeCode": "NEAREST", "distance": 1}
+        c = FakeClient()
+        out = workflow.run_fast_order(
+            c, {}, ITEMS, now=NOW, confirmed=True, stores=[caller_choice, nearest]
+        )
+        self.assertEqual(out["order_id"], "ORDER_ABC_123")
+        create_args = [a for n, a in c.calls if n == "create-order"][0]
+        self.assertEqual(create_args["storeCode"], "CALLER_CHOICE")
+
     def test_price_call_has_no_reservation_date(self):
         """calculate-price 不传 reservationDate（那是 create-order 的参数，传了会让部分商品 60006）。"""
         c = FakeClient()

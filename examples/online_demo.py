@@ -120,6 +120,9 @@ def prepare_live(client, context: dict, city: str, keyword: str):
             chosen = [ok[0]]
         else:
             return stores, None
+        # 把本次选品门店放到首位：run_fast_order 注入 stores 时直接采用第一家，
+        # 保证「选品门店 == 计价门店」。
+        stores = [store] + [s for s in stores if s.get("storeCode") != store.get("storeCode")]
         return stores, [{"productCode": c, "quantity": 1, "name": n} for c, n in chosen]
     except Exception:
         return None, None

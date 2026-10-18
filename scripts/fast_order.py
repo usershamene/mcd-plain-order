@@ -113,13 +113,20 @@ def estimate_eta_minutes(distance_m: float, mode: str = "walking") -> int:
 
 
 def build_fast_order_plan(
-    stores: list[dict], context: dict, now: datetime, buffer: int = 5
+    stores: list[dict],
+    context: dict,
+    now: datetime,
+    buffer: int = 5,
+    store: dict | None = None,
 ) -> dict:
     """组装极速点单方案（确定性部分）。workflow 据此调用 calculate-price + create-order。
     返回 {store, method, eta_minutes, reservation}；无可用店时 {error}。
+
+    store：调用方已选定的门店（通常已用它取过菜单）。传入时**直接采用、不再重选**，
+    以保证「选品门店 == 计价门店」；不传时才按业务规则自动选店。
     """
     method = choose_pickup_method(context)
-    store = select_nearest_store(stores, prefer_dt=(method == "dt"))
+    store = store or select_nearest_store(stores, prefer_dt=(method == "dt"))
     if not store:
         return {"error": "附近无营业且支持预约的门店"}
     dist = float(store.get("distance", 0))
