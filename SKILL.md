@@ -183,6 +183,13 @@ success == false               →  业务失败，原文展示 message，禁止
 - 金额只取 `calculate-price` 返回的 `originalPrice` / `price` / `discount`；
 - **不得声称接口未返回的优惠**（如"第二份半价""实际会更便宜"）——算价里没有就是没有。
 
+### 8. 输出强制（L1/L2）
+
+- **首选**：`python scripts/reply.py --json '<result>'` 直接产出成品消息，**原样转发**，不要自己排版。
+- **自检**：发前跑 `python scripts/validate_reply.py --file reply.txt`；`FAIL` 必须重生成。
+- 宿主支持 hook 时，把 `hooks/validate_reply_hook.py` 接到 pre-send；接线与局限见 `references/enforcement.md`。
+- 8 类模板与红线见 `references/output-format.md`。
+
 ## 个性化（用户画像）
 
 基于用户的历史偏好与时间特征做个性化，但**状态与规则都在 Skill 内**，不依赖外部服务——Skill 本就运行在 Agent 内部，无需另起组件。
@@ -200,6 +207,8 @@ success == false               →  业务失败，原文展示 message，禁止
 | 脚本 | 用途 | 何时用 |
 | --- | --- | --- |
 | `scripts/order.py` | 一站式下单 CLI：预览 / 确认、校验门店编码、UTF-8；走 workflow | **首选入口**：用户点单 / 下单 |
+| `scripts/reply.py` | 把 `result` JSON 渲染成最终消息（L1） | **首选出口**：所有面向用户的消息 |
+| `scripts/validate_reply.py` | 校验回复格式，机器可读 PASS/FAIL（L2） | 发送前自检 / CI |
 | `scripts/mcd_client.py` | MCP 客户端（鉴权 / 会话 / 业务校验） | 所有工具调用 |
 | `scripts/console.py` | Windows 控制台 UTF-8（脚本入口调用） | 脚本需要打印中文时 |
 | `scripts/clock.py` | 当前时间（MCP `now-time-info` 优先，本机时钟兜底） | 需要"现在几点"时（自动，不询问） |
@@ -226,7 +235,8 @@ python scripts/mcd_client.py call query-my-account # 调用单个工具
 | `references/product-spec.md` | 产品定义、功能矩阵、非目标 | 需要产品定位 / 边界时 |
 | `references/design-standards.md` | 适老设计标准（可验收清单） | 生成任何面向用户消息前 |
 | `references/architecture.md` | 六层架构、模块契约、错误策略 | 改动模块 / 排查错误时 |
-| `references/output-format.md` | 输出消息格式规范（分区 / 区分 / 最少字最多信息） | 渲染任何用户消息前 |
+| `references/output-format.md` | 输出消息格式规范（8 类模板 / 通用规则） | 渲染任何用户消息前 |
+| `references/enforcement.md` | 输出强制的 4 层与宿主 hook 接线 | 需要"保证格式"时 |
 | `references/be_type_matrix.md` | 四种取餐方式的完整参数矩阵 | 构造门店 / 计价 / 下单参数前 |
 | `references/error_codes.md` | 错误码、易误判场景、参数格式 | 遇到 `6000x` 报错时 |
 | `references/mcd-mcp-tools-reference.md` | 35 个 MCP 工具完整调研 | 需要工具字段 / 行为时 |

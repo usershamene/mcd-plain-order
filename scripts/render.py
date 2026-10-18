@@ -83,8 +83,11 @@ def render_fast_plan(plan: dict, detail: bool = False) -> str:
         lines = [f"🍔 极速点单（{label} · {eta_label}）"]
 
     if name:
-        dist_s = f"（{_fmt(dist)} 米）" if dist is not None else ""
-        lines.append(f"· 最近门店：{name}{dist_s}")
+        code = store.get("storeCode")
+        meta = " · ".join(
+            x for x in (str(code) if code else "", f"{_fmt(dist)} 米" if dist is not None else "") if x
+        )
+        lines.append(f"· 最近门店：{name}" + (f"（{meta}）" if meta else ""))
     # 麦乐送/团餐为送上门（或到店自提团餐），不挂门店预约时段，标题已给"预计 N 分钟送达"。
     if method not in ("delivery", "group"):
         resv = plan.get("reservation")
@@ -164,8 +167,97 @@ def render_action(action: dict) -> str:
         out.append(f"· 下单后 {mins} 分钟内可取消（回复「确认」）")
     note = action.get("note")
     if note:
-        out.append(f"· {note}")
+        # 有确认 CTA 时 note 是补充说明；否则它就是"👉 下一步"
+        out.append(f"· {note}" if action.get("confirm") else f"👉 {note}")
     return "\n".join(out)
+
+
+def render_stores(stores: list[dict]) -> str:
+    """查门店：一行一家，带 storeCode / 距离 / 营业 / 预约（不用宽表格）。"""
+    if not stores:
+        return ""
+    lines = [f"🏪 附近门店（{len(stores)} 家 · 按距离）"]
+    for s in stores:
+        name = s.get("storeName", "")
+        meta = " · ".join(
+            x
+            for x in (
+                s.get("storeCode", ""),
+                f"{_fmt(s['distance'])} 米" if s.get("distance") is not None else "",
+                f"{s['businessStartTime']}–{s['businessEndTime']}"
+                if s.get("businessStartTime") and s.get("businessEndTime")
+                else "",
+                "可预约" if s.get("reservation") else "不可预约",
+            )
+            if x
+        )
+        lines.append(f"· {name}（{meta}）")
+    return "\n".join(lines)
+
+
+def render_menu(items: list[dict], store: dict | None = None) -> str:
+    """查菜单 / 商品：一行一个，带价格与可选标签。"""
+    if not items:
+        return ""
+    head = "🍟 菜单"
+    if store:
+        meta = " · ".join(x for x in (store.get("storeName", ""), store.get("storeCode", "")) if x)
+        if meta:
+            head += f" · {meta}"
+    lines = [head]
+    for it in items:
+        line = f"· {it.get('name', '')} ¥{it.get('price', '')}"
+        if it.get("tag"):
+            line += f"（{it['tag']}）"
+        lines.append(line)
+    return "\n".join(lines)
+
+
+def render_compare(options: list[dict], mode: str = "") -> str:
+    """方案对比：每个方案 1 行，不展开成长段落。"""
+    if not options:
+        return ""
+    lines = ["🍔 方案对比" + (f"（{mode}）" if mode else "")]
+    for i, o in enumerate(options):
+        label = o.get("label") or chr(ord("A") + i)
+        lines.append(f"{label}. {o.get('name', '')} · 实付 ¥{o.get('pay', '')}")
+    return "\n".join(lines)
+
+
+def render_receipt(receipt: dict) -> str:
+    """下单回执：固定 5 行（✅ 头 / 订单号 / 付款 / 截止 / 实付）。"""
+    if not receipt:
+        return ""
+    head = "✅ 已下单"
+    if receipt.get("storeName"):
+        head += f" · {receipt['storeName']}"
+    if receipt.get("storeCode"):
+        head += f"（{receipt['storeCode']}）"
+    lines = [head]
+    if receipt.get("orderId"):
+        lines.append(f"· 订单号：{receipt['orderId']}")
+    if receipt.get("payUrl"):
+        lines.append(f"· 付款：{receipt['payUrl']}")
+    if receipt.get("payDeadline"):
+        mins = receipt.get("cancellableMin", 10)
+        lines.append(f"· 截止：{receipt['payDeadline']}（{mins} 分钟内可取消）")
+    elif receipt.get("cancellableMin"):
+        lines.append(f"· {receipt['cancellableMin']} 分钟内可取消")
+    if receipt.get("pay"):
+        lines.append(f"· 实付 ¥{receipt['pay']}")
+    return "\n".join(lines)
+
+
+def render_error(error: dict) -> str:
+    """错误 / 需要确认：⚠️ 一句话 + 原因原文 + 下一步。"""
+    if not error:
+        return ""
+    lines = [f"⚠️ {error.get('title', '出了点问题')}"]
+    if error.get("reason"):
+        lines.append(f"· {error['reason']}")
+    if error.get("next"):
+        lines.append(f"👉 {error['next']}")
+    return "\n".join(lines)
 
 
 def render_message(result: dict) -> str:
@@ -174,6 +266,9 @@ def render_message(result: dict) -> str:
     g = render_greeting(result.get("greeting"))
     if g:
         blocks.append(g)
+    e = render_error(result.get("error", {}))
+    if e:
+        blocks.append(e)
     o = render_order(result.get("order", {}))
     if o:
         blocks.append(o)
@@ -183,6 +278,15 @@ def render_message(result: dict) -> str:
         fp_block = render_fast_plan(fp, detail=bool(o))
         if fp_block:
             blocks.append(fp_block)
+    st = render_stores(result.get("stores", []))
+    if st:
+        blocks.append(st)
+    mn = render_menu(result.get("menu", []), result.get("menu_store"))
+    if mn:
+        blocks.append(mn)
+    cp = render_compare(result.get("compare", []), result.get("compare_mode", ""))
+    if cp:
+        blocks.append(cp)
     r = result.get("reminders", {})
     rn = render_new(r.get("new", []))
     if rn:
@@ -198,5 +302,10 @@ def render_message(result: dict) -> str:
         blocks.append(a)
     rct = result.get("receipt")
     if rct:
-        blocks.append(rct)
+        if isinstance(rct, dict):
+            rb = render_receipt(rct)
+            if rb:
+                blocks.append(rb)
+        else:
+            blocks.append(rct)
     return "\n\n".join(blocks)
